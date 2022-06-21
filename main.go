@@ -1,7 +1,7 @@
 package main
 
-import "SSHPKM/src/db"
+import "github.com/farinap5/SSHPKM/src/db"
 
 func main() {
-	db.Teste()
+	db.DBFileConfig()
 }
