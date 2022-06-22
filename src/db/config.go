@@ -95,7 +95,8 @@ func DBTesteTables() {
 		    hid 		INTEGER PRIMARY KEY AUTOINCREMENT,
 		    Hostname	TEXT NOT NULL,
 		    Name 		TEXT,
-		    Description	TEXT
+		    Description	TEXT,
+		    CreateDate	TEXT NOT NULL
 		);
 		`)
 		if err != nil {
