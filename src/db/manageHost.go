@@ -52,11 +52,76 @@ func DBListHost() {
 
 func DBVerifyHost(name string) bool {
 	var un string
-	row := DBConn.QueryRow("SELECT * FROM Host WHERE Hostname == ?", name)
+	row := DBConn.QueryRow("SELECT hid FROM Host WHERE Hostname == ?", name)
 	row.Scan(&un)
+	//println(un)
 	if un != "" {
 		return true
 	} else {
 		return false
 	}
+}
+
+func DBGiveAccess(Host string, User string) {
+	var h, u string
+	hrow := DBConn.QueryRow("SELECT hid FROM Host WHERE Hostname == ?", Host)
+	hrow.Scan(&h)
+	if h == "" {
+		println("Host " + Host + " does not exist.")
+		return
+	}
+
+	urow := DBConn.QueryRow("SELECT uid FROM User WHERE Username == ?", User)
+	urow.Scan(&u)
+	if u == "" {
+		println("User " + User + " does not exist.")
+		return
+	}
+
+	sttm, err := DBConn.Prepare(`
+	INSERT INTO Access (uid, hid, LastUseDate) VALUES (?,?,datetime('now','localtime'));
+	`)
+	if err != nil {
+		println(err.Error())
+		return
+	}
+	_, err = sttm.Exec(u, h)
+	if err != nil {
+		println(err.Error())
+		return
+	}
+	println("Access in " + Host + " given to " + User)
+}
+
+func DBListAccess(Host string) {
+	var h string
+	hrow := DBConn.QueryRow("SELECT hid FROM Host WHERE Hostname == ?", Host)
+	hrow.Scan(&h)
+	if h == "" {
+		println("Host " + Host + " does not exist.")
+		return
+	}
+
+	arow, err := DBConn.Query(`
+	select Username, A.LastUseDate
+		FROM Access A INNER JOIN User u
+		ON A.uid = u.uid
+		INNER JOIN Host H
+		ON A.hid = H.hid
+		WHERE H.Hostname = ?;`, Host)
+	if err != nil {
+		println(err.Error())
+		return
+	}
+
+	t := tabby.New()
+	t.AddHeader("Username", "Last Interaction")
+	for arow.Next() {
+		var uname, linteract string
+		arow.Scan(&uname, &linteract)
+		t.AddLine(uname, linteract)
+	}
+	print("\n")
+	t.Print()
+	print("\n")
 }

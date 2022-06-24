@@ -77,3 +77,19 @@ func DBUserOptions(name string) {
 	fmt.Printf("SSH Public Key:\n%s\n\n", sshpk)
 	fmt.Printf("User Description:\n%s\n\n", desc)
 }
+
+func DBSetuUserVar(v int, value string, name string) {
+	switch v {
+	case 1: // UPDATE SSHKEY
+		sttm, err := DBConn.Prepare("UPDATE User SET SSHPK=? WHERE Username=?;")
+		if err != nil {
+			println(err.Error())
+			return
+		}
+		_, err = sttm.Exec(value, name)
+		if err != nil {
+			println(err.Error())
+		}
+		break
+	}
+}

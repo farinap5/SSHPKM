@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"github.com/farinap5/SSHPKM/src/db"
+	"github.com/farinap5/SSHPKM/src/server"
 	"os"
 	"strings"
 )
@@ -26,6 +27,7 @@ func handleCmd(c string) {
 	if c == "help" || c == "h" {
 		Help()
 	} else if c == "exit" || c == "quit" || c == "e" {
+		server.ServerStop()
 		os.Exit(0)
 	} else if cs[0] == "create" {
 		create(cs)
@@ -33,6 +35,18 @@ func handleCmd(c string) {
 		list(cs)
 	} else if cs[0] == "config" {
 		config(cs)
+	} else if cs[0] == "access" {
+		if cs[1] == "help" {
+			HelpAccess()
+			return
+		}
+		if len(cs) != 3 {
+			println("More arguments needed.")
+			return
+		}
+		db.DBGiveAccess(cs[1], cs[2])
+	} else if cs[0] == "listen" || cs[0] == "server" {
+		listen(cs)
 	}
 }
 
@@ -61,6 +75,8 @@ func list(cs []string) {
 		db.DBListUser()
 	} else if cs[1] == "host" {
 		db.DBListHost()
+	} else if cs[1] == "access" && len(cs) == 3 {
+		db.DBListAccess(cs[2])
 	}
 }
 
@@ -95,12 +111,16 @@ func configUser(user string) {
 		print("[\u001B[1;32m" + user + "\u001B[0;0m]> ")
 		c, _ = reader.ReadString('\n')
 		c = strings.Split(c, "\n")[0]
-		//cs := strings.Split(c, " ")
+		cs := strings.Split(c, " ")
 
 		if c == "back" {
 			return
 		} else if c == "options" {
 			db.DBUserOptions(user)
+		} else if cs[0] == "set" && len(cs) == 3 {
+			if cs[1] == "pk" {
+				db.DBSetuUserVar(1, cs[2], user)
+			}
 		}
 	}
 }
@@ -118,6 +138,22 @@ func configHost(host string) {
 			return
 		} else if c == "options" {
 
+		}
+	}
+}
+
+func listen(cs []string) {
+	if len(cs) != 2 {
+		println("More arguments needed.")
+		return
+	}
+
+	if cs[1] == "start" {
+		server.ServerListen()
+		CMDStatus = "\033[1;34m*\033[0;0m"
+	} else if cs[1] == "stop" {
+		if server.ServerStop() {
+			CMDStatus = "\033[1;31m*\033[0;0m"
 		}
 	}
 }

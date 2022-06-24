@@ -30,7 +30,7 @@ func DBFileConfig() {
 	/*
 		Connect
 	*/
-	log.Println("Trying to connect to de database.")
+	log.Println("Trying to connect to the database.")
 	tmp, errdb := sql.Open("sqlite3", DBaseF)
 	if errdb != nil {
 		log.Println("\t\t└──Fail! -> ", err.Error())
