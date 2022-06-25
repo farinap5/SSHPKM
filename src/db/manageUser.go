@@ -1,7 +1,6 @@
 package db
 
 import (
-	"fmt"
 	"github.com/cheynewallace/tabby"
 	"log"
 )
@@ -68,14 +67,21 @@ func DBVerifyUser(name string) bool {
 }
 
 func DBUserOptions(name string) {
-	row := DBConn.QueryRow("SELECT * FROM User WHERE Username == ?", name)
+	row := DBConn.QueryRow("SELECT uid, Username, UserID, CreateDate, SSHPK, Description FROM User WHERE Username == ?", name)
 	var uname, cdate, sshpk, desc string
 	var id, uid int
 	row.Scan(&id, &uname, &uid, &cdate, &sshpk, &desc)
-	fmt.Printf("\n%d) %s\n\n", id, uname)
-	fmt.Printf("Creation Date: %s\n\n", cdate)
-	fmt.Printf("SSH Public Key:\n%s\n\n", sshpk)
-	fmt.Printf("User Description:\n%s\n\n", desc)
+	t := tabby.New()
+	t.AddHeader("Option", "Value")
+	t.AddLine("ID", id)
+	t.AddLine("Username", uname)
+	t.AddLine("User ID", uid)
+	t.AddLine("Creation Date", cdate)
+	t.AddLine("Public Key", sshpk)
+	t.AddLine("Description", desc)
+	print("\n")
+	t.Print()
+	print("\n")
 }
 
 func DBSetuUserVar(v int, value string, name string) {
@@ -91,5 +97,40 @@ func DBSetuUserVar(v int, value string, name string) {
 			println(err.Error())
 		}
 		break
+
+	case 2: // UPDATE Description
+		sttm, err := DBConn.Prepare("UPDATE User SET Description=? WHERE Username=?;")
+		if err != nil {
+			println(err.Error())
+			return
+		}
+		_, err = sttm.Exec(value, name)
+		if err != nil {
+			println(err.Error())
+		}
+		break
+
+	case 3: // UPDATE UID
+		sttm, err := DBConn.Prepare("UPDATE User SET UserID=? WHERE Username=?;")
+		if err != nil {
+			println(err.Error())
+			return
+		}
+		_, err = sttm.Exec(value, name)
+		if err != nil {
+			println(err.Error())
+		}
+		break
+	}
+}
+
+func DBGetUserSSHKey(User string) string {
+	var key string
+	row := DBConn.QueryRow("SELECT SSHPK FROM User WHERE Username == ?", User)
+	row.Scan(&key)
+	if key == "" {
+		return "(null)"
+	} else {
+		return key
 	}
 }

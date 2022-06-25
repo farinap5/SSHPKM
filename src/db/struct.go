@@ -15,3 +15,10 @@ type Host struct {
 	name       string
 	createdate string
 }
+
+type Conf struct {
+	hid         int
+	configname  string
+	value       string
+	description string
+}

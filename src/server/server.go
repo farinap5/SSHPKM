@@ -20,7 +20,6 @@ func ServerPrepare() {
 		Addr:    Addr,
 		Handler: serverMux,
 	}
-
 }
 
 func ServerStart() {
@@ -52,4 +51,10 @@ func ServerStop() bool {
 		return false
 	}
 	return true
+}
+
+func ServerRestart() {
+	fmt.Println("Restarting...")
+	ServerStop()
+	ServerListen()
 }

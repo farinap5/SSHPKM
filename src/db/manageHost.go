@@ -125,3 +125,68 @@ func DBListAccess(Host string) {
 	t.Print()
 	print("\n")
 }
+
+func DBVerifyAccess(User string, Host string) (bool, int) {
+	arow := DBConn.QueryRow(`
+	SELECT a.aid
+	FROM Access A INNER JOIN User u
+	ON A.uid = u.uid
+	INNER JOIN Host H
+	ON A.hid = H.hid
+	WHERE H.Hostname = ? AND u.Username = ?;
+	`, Host, User)
+	var a int = 0
+	arow.Scan(&a)
+	if a == 0 {
+		return false, 0
+	} else {
+		return true, a
+	}
+}
+
+func DBHostOptions(name string) {
+	row := DBConn.QueryRow("SELECT hid, Hostname, Name, Description, CreateDate FROM Host WHERE Hostname == ?", name)
+	var Hostname, Name, Description, CreateDate string
+	var hid int
+	row.Scan(&hid, &Hostname, &Name, &Description, &CreateDate)
+
+	t := tabby.New()
+	t.AddHeader("Option", "Value")
+	t.AddLine("ID", hid)
+	t.AddLine("Hostname", Hostname)
+	t.AddLine("Creation Date", CreateDate)
+	t.AddLine("Name", Name)
+	t.AddLine("Description", Description)
+	print("\n")
+	t.Print()
+	print("\n")
+}
+
+func DBSetUpHostVar(v int, value string, host string) {
+	switch v {
+	case 1: // UPDATE Name
+		sttm, err := DBConn.Prepare("UPDATE Host SET Name=? WHERE Hostname=?;")
+		if err != nil {
+			println(err.Error())
+			return
+		}
+		_, err = sttm.Exec(value, host)
+		if err != nil {
+			println(err.Error())
+			return
+		}
+		break
+	case 2: // UPDATE Desc
+		sttm, err := DBConn.Prepare("UPDATE Host SET Description=? WHERE Hostname=?;")
+		if err != nil {
+			println(err.Error())
+			return
+		}
+		_, err = sttm.Exec(value, host)
+		if err != nil {
+			println(err.Error())
+			return
+		}
+		break
+	}
+}

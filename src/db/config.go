@@ -44,7 +44,7 @@ func DBFileConfig() {
 func DBTesteTables() {
 	log.Println("Verifying tables.")
 
-	// Testing table Host
+	// Testing table Config
 	_, err := DBConn.Query("SELECT * FROM Confing LIMIT 1;")
 	if err != nil {
 		log.Println("\t└──Fail->", err.Error())
@@ -56,6 +56,28 @@ func DBTesteTables() {
 		    Description	TEXT
 		);
 		`)
+		if err != nil {
+			log.Println("\t\t└──Fail->", err.Error())
+		} else {
+			state.Exec()
+			log.Println("\t\t└──Success-> Table Confing created.")
+		}
+
+		log.Println("Setting up default configuration")
+		sttm, err := DBConn.Prepare(`
+			insert into Confing (configname, value, description) values ('Address','0.0.0.0','interface to listen on.');
+			insert into Confing (configname, value, description) values ('Port','8080','Port to listen on.');
+			insert into Confing (configname, value, description) values ('Logs','localogs.log','Path to the logs filename.');
+			insert into Confing (configname, value, description) values ('HostHeader','SSH-Host','HTTP GET header with the host.');
+			insert into Confing (configname, value, description) values ('UserHeader','SSH-User','HTTP GET header with the user.');
+		`)
+		if err != nil {
+			log.Println("\t\t└──Fail->", err.Error())
+		} else {
+			state.Exec()
+			log.Println("\t\t└──Success-> Table Confing created.")
+		}
+		_, err = sttm.Exec()
 		if err != nil {
 			log.Println("\t\t└──Fail->", err.Error())
 		} else {
