@@ -3,6 +3,7 @@ package db
 import (
 	"github.com/cheynewallace/tabby"
 	"log"
+	"strings"
 )
 
 func DBCreateUser(name string) {
@@ -10,29 +11,29 @@ func DBCreateUser(name string) {
 	row := DBConn.QueryRow("SELECT uid FROM User WHERE Username == ?", name)
 	row.Scan(&un)
 	if un != "" {
-		println("User " + name + " already exists.")
+		println("[\u001B[1;31m!\u001B[0;0m] User " + name + " already exists.")
 	} else {
 		sttm, err := DBConn.Prepare(`
 		INSERT INTO User (username, userid, createdate, sshpk, description) VALUES (
 		?,?,datetime('now','localtime'),?,?) 
 		 `)
 		if err != nil {
-			log.Println(err.Error())
+			log.Println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
 			return
 		}
 		_, err = sttm.Exec(name, 0, "NULL", "NULL")
 		if err != nil {
-			log.Println(err.Error())
+			log.Println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
 			return
 		}
-		println("User " + name + " created.")
+		println("[\u001B[1;32m+\u001B[0;0m] User " + name + " created.")
 	}
 }
 
 func DBListUser() {
 	row, err := DBConn.Query("SELECT * FROM User LIMIT 50")
 	if err != nil {
-		println(err.Error())
+		println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
 		return
 	}
 
@@ -71,13 +72,20 @@ func DBUserOptions(name string) {
 	var uname, cdate, sshpk, desc string
 	var id, uid int
 	row.Scan(&id, &uname, &uid, &cdate, &sshpk, &desc)
+
+	sshpks := strings.Split(sshpk, " ")
+
 	t := tabby.New()
 	t.AddHeader("Option", "Value")
 	t.AddLine("ID", id)
 	t.AddLine("Username", uname)
 	t.AddLine("User ID", uid)
 	t.AddLine("Creation Date", cdate)
-	t.AddLine("Public Key", sshpk)
+	if sshpks[0] != "NULL" {
+		t.AddLine("Public Key", sshpks[0]+" "+sshpks[2])
+	} else {
+		t.AddLine("Public Key", sshpks[0])
+	}
 	t.AddLine("Description", desc)
 	print("\n")
 	t.Print()
@@ -89,36 +97,37 @@ func DBSetuUserVar(v int, value string, name string) {
 	case 1: // UPDATE SSHKEY
 		sttm, err := DBConn.Prepare("UPDATE User SET SSHPK=? WHERE Username=?;")
 		if err != nil {
-			println(err.Error())
+			println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
 			return
 		}
 		_, err = sttm.Exec(value, name)
 		if err != nil {
-			println(err.Error())
+			println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
 		}
 		break
 
 	case 2: // UPDATE Description
 		sttm, err := DBConn.Prepare("UPDATE User SET Description=? WHERE Username=?;")
 		if err != nil {
-			println(err.Error())
+			println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
 			return
 		}
 		_, err = sttm.Exec(value, name)
 		if err != nil {
-			println(err.Error())
+			println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
+			return
 		}
 		break
 
 	case 3: // UPDATE UID
 		sttm, err := DBConn.Prepare("UPDATE User SET UserID=? WHERE Username=?;")
 		if err != nil {
-			println(err.Error())
+			println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
 			return
 		}
 		_, err = sttm.Exec(value, name)
 		if err != nil {
-			println(err.Error())
+			println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
 		}
 		break
 	}

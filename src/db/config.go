@@ -65,17 +65,18 @@ func DBTesteTables() {
 
 		log.Println("Setting up default configuration")
 		sttm, err := DBConn.Prepare(`
-			insert into Confing (configname, value, description) values ('Address','0.0.0.0','interface to listen on.');
-			insert into Confing (configname, value, description) values ('Port','8080','Port to listen on.');
-			insert into Confing (configname, value, description) values ('Logs','localogs.log','Path to the logs filename.');
-			insert into Confing (configname, value, description) values ('HostHeader','SSH-Host','HTTP GET header with the host.');
-			insert into Confing (configname, value, description) values ('UserHeader','SSH-User','HTTP GET header with the user.');
+			insert into Confing (configname, value, description) values ('Address','0.0.0.0','interface to listen on.'),
+			('Port','8080','Port to listen on.'),
+			('Logs','localogs.log','Path to the logs filename.'),
+			('HostHeader','SSH-Host','HTTP GET header with the host.'),
+			('UserHeader','SSH-User','HTTP GET header with the user.'),
+			('AuthToken','Auth-Token','Authentication token.');
 		`)
 		if err != nil {
-			log.Println("\t\t└──Fail->", err.Error())
+			log.Println("\t└──Fail->", err.Error())
 		} else {
 			state.Exec()
-			log.Println("\t\t└──Success-> Table Confing created.")
+			log.Println("\t└──Success-> Table Confing created.")
 		}
 		_, err = sttm.Exec()
 		if err != nil {
@@ -118,7 +119,9 @@ func DBTesteTables() {
 		    Hostname	TEXT NOT NULL,
 		    Name 		TEXT,
 		    Description	TEXT,
-		    CreateDate	TEXT NOT NULL
+		    CreateDate	TEXT NOT NULL,
+		    UseToken	TEXT,
+		    Token		TEXT
 		);
 		`)
 		if err != nil {

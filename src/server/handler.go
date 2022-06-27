@@ -14,6 +14,14 @@ func Home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if db.DBHostNeedAuth(Host) {
+		token := r.Header.Get("Auth-Token")
+		if !db.DBAuth(token, Host) {
+			w.Write([]byte("(null)"))
+			return
+		}
+	}
+
 	v, _ := db.DBVerifyAccess(User, Host)
 	if !v {
 		w.Write([]byte("(null)"))

@@ -10,7 +10,7 @@ func DBGetConfig(Conf string) string {
 	hrow := DBConn.QueryRow("SELECT Value FROM Confing WHERE ConfigName == ?", Conf)
 	hrow.Scan(&c)
 	if c == "" {
-		println("Not conf.")
+		println("[\u001B[1;31m!\u001B[0;0m] Not conf.")
 		return "NULL"
 	}
 	return c
@@ -47,12 +47,12 @@ func DBSetConf(option string, value string) bool {
 
 	sttm, err := DBConn.Prepare("UPDATE Confing SET Value=? WHERE ConfigName=?;")
 	if err != nil {
-		println(err.Error())
+		println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
 		return false
 	}
 	_, err = sttm.Exec(value, option)
 	if err != nil {
-		println(err.Error())
+		println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
 		return false
 	}
 	return true

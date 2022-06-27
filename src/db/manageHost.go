@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"github.com/cheynewallace/tabby"
 	"log"
 )
@@ -10,39 +11,39 @@ func DBCreateHost(hostname string) {
 	row := DBConn.QueryRow("SELECT hid FROM Host WHERE Hostname == ?", hostname)
 	row.Scan(&un)
 	if un != "" {
-		println("User " + hostname + " already exists.")
+		println("[\u001B[1;31m!\u001B[0;0m] User " + hostname + " already exists.")
 	} else {
 		sttm, err := DBConn.Prepare(`
-		INSERT INTO Host (hostname, name, description, CreateDate) VALUES (
-		?,?,?,datetime('now','localtime')) 
+		INSERT INTO Host (hostname, name, description, CreateDate,UseToken,Token) VALUES (
+		?,?,?,datetime('now','localtime'),?,?) 
 		 `)
 		if err != nil {
-			log.Println(err.Error())
+			log.Println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
 			return
 		}
-		_, err = sttm.Exec(hostname, "NULL", "NULL")
+		_, err = sttm.Exec(hostname, "NULL", "NULL", "false", "NULL")
 		if err != nil {
-			log.Println(err.Error())
+			log.Println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
 			return
 		}
-		println("Host " + hostname + " created.")
+		println("[\u001B[1;32m+\u001B[0;0m] Host " + hostname + " created.")
 	}
 }
 
 func DBListHost() {
-	row, err := DBConn.Query("SELECT hid, Hostname, Name, CreateDate FROM Host LIMIT 50")
+	row, err := DBConn.Query("SELECT hid, Hostname, Name, CreateDate,UseToken FROM Host LIMIT 50")
 	if err != nil {
 		println(err.Error())
 		return
 	}
 
 	t := tabby.New()
-	t.AddHeader("ID", "Hostname", "Name", "Creation Date")
+	t.AddHeader("ID", "Hostname", "Name", "Creation Date", "Authentication")
 	for row.Next() {
-		var hname, name, cdate string
+		var hname, name, cdate, auth string
 		var id int
-		row.Scan(&id, &hname, &name, &cdate)
-		t.AddLine(id, hname, name, cdate)
+		row.Scan(&id, &hname, &name, &cdate, &auth)
+		t.AddLine(id, hname, name, cdate, auth)
 	}
 
 	print("\n")
@@ -63,18 +64,24 @@ func DBVerifyHost(name string) bool {
 }
 
 func DBGiveAccess(Host string, User string) {
+	va, _ := DBVerifyAccess(User, Host)
+	if va {
+		fmt.Println("[\u001B[1;31m!\u001B[0;0m] Permission already given.")
+		return
+	}
+
 	var h, u string
 	hrow := DBConn.QueryRow("SELECT hid FROM Host WHERE Hostname == ?", Host)
 	hrow.Scan(&h)
 	if h == "" {
-		println("Host " + Host + " does not exist.")
+		println("[\u001B[1;31m!\u001B[0;0m] Host " + Host + " does not exist.")
 		return
 	}
 
 	urow := DBConn.QueryRow("SELECT uid FROM User WHERE Username == ?", User)
 	urow.Scan(&u)
 	if u == "" {
-		println("User " + User + " does not exist.")
+		println("[\u001B[1;31m!\u001B[0;0m] User " + User + " does not exist.")
 		return
 	}
 
@@ -82,15 +89,15 @@ func DBGiveAccess(Host string, User string) {
 	INSERT INTO Access (uid, hid, LastUseDate) VALUES (?,?,datetime('now','localtime'));
 	`)
 	if err != nil {
-		println(err.Error())
+		println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
 		return
 	}
 	_, err = sttm.Exec(u, h)
 	if err != nil {
-		println(err.Error())
+		println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
 		return
 	}
-	println("Access in " + Host + " given to " + User)
+	println("[\u001B[1;32m+\u001B[0;0m] Access in " + Host + " given to " + User)
 }
 
 func DBListAccess(Host string) {
@@ -98,7 +105,7 @@ func DBListAccess(Host string) {
 	hrow := DBConn.QueryRow("SELECT hid FROM Host WHERE Hostname == ?", Host)
 	hrow.Scan(&h)
 	if h == "" {
-		println("Host " + Host + " does not exist.")
+		println("[\u001B[1;31m!\u001B[0;0m] Host " + Host + " does not exist.")
 		return
 	}
 
@@ -145,10 +152,10 @@ func DBVerifyAccess(User string, Host string) (bool, int) {
 }
 
 func DBHostOptions(name string) {
-	row := DBConn.QueryRow("SELECT hid, Hostname, Name, Description, CreateDate FROM Host WHERE Hostname == ?", name)
-	var Hostname, Name, Description, CreateDate string
+	row := DBConn.QueryRow("SELECT hid, Hostname, Name, Description, CreateDate, UseToken,Token FROM Host WHERE Hostname == ?", name)
+	var Hostname, Name, Description, CreateDate, ut, token string
 	var hid int
-	row.Scan(&hid, &Hostname, &Name, &Description, &CreateDate)
+	row.Scan(&hid, &Hostname, &Name, &Description, &CreateDate, &ut, &token)
 
 	t := tabby.New()
 	t.AddHeader("Option", "Value")
@@ -157,6 +164,10 @@ func DBHostOptions(name string) {
 	t.AddLine("Creation Date", CreateDate)
 	t.AddLine("Name", Name)
 	t.AddLine("Description", Description)
+	t.AddLine("Need Auth", ut)
+	if DBHostNeedAuth(name) {
+		t.AddLine("Token", token)
+	}
 	print("\n")
 	t.Print()
 	print("\n")
@@ -167,26 +178,83 @@ func DBSetUpHostVar(v int, value string, host string) {
 	case 1: // UPDATE Name
 		sttm, err := DBConn.Prepare("UPDATE Host SET Name=? WHERE Hostname=?;")
 		if err != nil {
-			println(err.Error())
+			println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
 			return
 		}
 		_, err = sttm.Exec(value, host)
 		if err != nil {
-			println(err.Error())
+			println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
 			return
 		}
 		break
 	case 2: // UPDATE Desc
 		sttm, err := DBConn.Prepare("UPDATE Host SET Description=? WHERE Hostname=?;")
 		if err != nil {
-			println(err.Error())
+			println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
 			return
 		}
 		_, err = sttm.Exec(value, host)
 		if err != nil {
-			println(err.Error())
+			println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
 			return
 		}
 		break
+	case 3: // UPDATE UseAuth
+		if value == "true" || value == "false" {
+
+		} else {
+			fmt.Println("[\u001B[1;31m!\u001B[0;0m] set auth true or false only.")
+			return
+		}
+
+		sttm, err := DBConn.Prepare("UPDATE Host SET UseToken=? WHERE Hostname=?;")
+		if err != nil {
+			println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
+			return
+		}
+		_, err = sttm.Exec(value, host)
+		if err != nil {
+			println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
+			return
+		}
+		fmt.Println("[\u001B[1;32m+\u001B[0;0m] auth <- " + value)
+		break
+	}
+}
+
+func DBHostNeedAuth(host string) bool {
+	row := DBConn.QueryRow("SELECT UseToken FROM Host WHERE Hostname=?;", host)
+	var na string
+	row.Scan(&na)
+	if na == "false" {
+		return false
+	} else {
+		return true
+	}
+}
+
+func DBRenewToken(host string) {
+	token := DBGenToken(16)
+	sttm, err := DBConn.Prepare("UPDATE Host SET Token=? WHERE Hostname=?;")
+	if err != nil {
+		println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
+		return
+	}
+	_, err = sttm.Exec(token, host)
+	if err != nil {
+		println("[\u001B[1;31m!\u001B[0;0m] " + err.Error())
+		return
+	}
+	fmt.Println("[\u001B[1;32m+\u001B[0;0m] Token renewd <- " + token)
+}
+
+func DBAuth(token string, host string) bool {
+	row := DBConn.QueryRow("SELECT Token FROM Host WHERE Hostname=?;", host)
+	var t string
+	row.Scan(&t)
+	if t == token {
+		return true
+	} else {
+		return false
 	}
 }

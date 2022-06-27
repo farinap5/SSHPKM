@@ -42,7 +42,7 @@ func handleCmd(c string) {
 			return
 		}
 		if len(cs) != 3 {
-			println("More arguments needed.")
+			println("[\u001B[1;31m!\u001B[0;0m] More arguments needed.")
 			return
 		}
 		db.DBGiveAccess(cs[1], cs[2])
@@ -52,16 +52,16 @@ func handleCmd(c string) {
 }
 
 func create(cs []string) {
-	if len(cs) < 3 {
-		println("More arguments needed.")
+	if len(cs) < 3 && cs[1] != "help" {
+		println("[\u001B[1;31m!\u001B[0;0m] More arguments needed.")
 		return
 	}
-	if cs[1] == "user" {
+	if cs[1] == "help" {
+		HelpCreate()
+	} else if cs[1] == "user" {
 		db.DBCreateUser(cs[2])
 	} else if cs[1] == "host" {
 		db.DBCreateHost(cs[2])
-	} else if cs[1] == "help" {
-		HelpCreate()
 	} else {
 		HelpCreate()
 	}
@@ -69,7 +69,7 @@ func create(cs []string) {
 
 func list(cs []string) {
 	if len(cs) < 2 {
-		println("More arguments needed.")
+		println("[\u001B[1;31m!\u001B[0;0m] More arguments needed.")
 		return
 	}
 	if cs[1] == "user" {
@@ -93,7 +93,7 @@ func config(cs []string) {
 	}
 
 	if len(cs) != 3 {
-		fmt.Println("More arguments needed.")
+		fmt.Println("[\u001B[1;31m!\u001B[0;0m] More arguments needed.")
 		return
 	}
 
@@ -101,18 +101,19 @@ func config(cs []string) {
 		if db.DBVerifyUser(cs[2]) {
 			configUser(cs[2])
 		} else {
-			println("User does not exist.")
+			println("[\u001B[1;31m!\u001B[0;0m] User does not exist.")
 		}
 	} else if cs[1] == "host" {
 		if db.DBVerifyHost(cs[2]) {
 			configHost(cs[2])
 		} else {
-			println("Host does not exist.")
+			println("[\u001B[1;31m!\u001B[0;0m] Host does not exist.")
 		}
 	}
 }
 
 func configUser(user string) {
+	fmt.Println("[\u001B[1;32m+\u001B[0;0m] Switched to User " + user)
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		var c string
@@ -121,20 +122,25 @@ func configUser(user string) {
 		c = strings.Split(c, "\n")[0]
 		cs := strings.Split(c, " ")
 
-		if c == "back" {
+		if c == "back" || c == "return" {
 			return
 		} else if c == "options" {
 			db.DBUserOptions(user)
-		} else if cs[0] == "set" && len(cs) == 3 {
-			if cs[1] == "pk" {
-				db.DBSetuUserVar(1, cs[2], user)
-				fmt.Println("Public Key <- " + cs[2])
+		} else if cs[0] == "set" && len(cs) >= 3 {
+			if cs[1] == "pk" && len(cs) == 5 {
+				err := KeyVerify(cs[2] + " " + cs[3] + " " + cs[4])
+				if err != nil {
+					fmt.Println("[\u001B[1;32m+\u001B[0;0m] " + err.Error())
+				} else {
+					db.DBSetuUserVar(1, cs[2]+" "+cs[3]+" "+cs[4], user)
+					fmt.Println("[\u001B[1;32m+\u001B[0;0m] Public Key <- " + cs[2] + " " + cs[4])
+				}
 			} else if cs[1] == "uid" {
 				db.DBSetuUserVar(3, cs[2], user)
-				fmt.Println("UserID <- " + cs[2])
+				fmt.Println("[\u001B[1;32m+\u001B[0;0m] UserID <- " + cs[2])
 			} else if cs[1] == "desc" {
 				db.DBSetuUserVar(2, cs[2], user)
-				fmt.Println("Description <- " + cs[2])
+				fmt.Println("[\u001B[1;32m+\u001B[0;0m] Description <- " + cs[2])
 			}
 		} else if c == "help" {
 			OptionsHelp()
@@ -143,6 +149,7 @@ func configUser(user string) {
 }
 
 func configHost(host string) {
+	fmt.Println("[\u001B[1;32m+\u001B[0;0m] Switched to Host " + host)
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		var c string
@@ -151,7 +158,7 @@ func configHost(host string) {
 		c = strings.Split(c, "\n")[0]
 		cs := strings.Split(c, " ")
 
-		if c == "back" {
+		if c == "back" || c == "return" {
 			return
 		} else if c == "options" {
 			db.DBHostOptions(host)
@@ -160,10 +167,14 @@ func configHost(host string) {
 		} else if cs[0] == "set" && len(cs) == 3 {
 			if cs[1] == "name" {
 				db.DBSetUpHostVar(1, cs[2], host)
-				fmt.Println("Name <- " + cs[2])
+				fmt.Println("[\u001B[1;32m+\u001B[0;0m] Name <- " + cs[2])
 			} else if cs[1] == "desc" {
 				db.DBSetUpHostVar(2, cs[2], host)
-				fmt.Println("Descriptions <- " + cs[2])
+				fmt.Println("[\u001B[1;32m+\u001B[0;0m] Descriptions <- " + cs[2])
+			} else if cs[1] == "auth" {
+				db.DBSetUpHostVar(3, cs[2], host)
+			} else if (cs[1] == "renew" || cs[1] == "new") && cs[2] == "token" {
+				db.DBRenewToken(host)
 			}
 		}
 	}
@@ -186,11 +197,11 @@ func configLocal() {
 			OptionsHelp()
 		} else if cs[0] == "set" && len(cs) == 3 {
 			if db.DBSetConf(cs[1], cs[2]) {
-				fmt.Println("OK " + cs[1] + " <- " + cs[2])
+				fmt.Println("[\u001B[1;32m+\u001B[0;0m]  " + cs[1] + " <- " + cs[2])
 			} else {
-				fmt.Println("Error: " + cs[1] + "<-" + cs[2])
+				fmt.Println("[\u001B[1;31m!\u001B[0;0m]  " + cs[1] + "<-" + cs[2])
 			}
-		} else if c == "back" {
+		} else if c == "back" || c == "return" {
 			return
 		}
 	}
@@ -198,7 +209,7 @@ func configLocal() {
 
 func listen(cs []string) {
 	if len(cs) != 2 {
-		println("More arguments needed.")
+		println("[\u001B[1;31m!\u001B[0;0m] More arguments needed.")
 		return
 	}
 
