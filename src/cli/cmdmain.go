@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/farinap5/SSHPKM/src/db"
+	"github.com/farinap5/SSHPKM/src/ext"
 	"github.com/farinap5/SSHPKM/src/server"
 	"os"
 	"strings"
@@ -36,7 +37,7 @@ func handleCmd(c string) {
 		list(cs)
 	} else if cs[0] == "config" {
 		config(cs)
-	} else if cs[0] == "access" {
+	} else if cs[0] == "access" && len(cs) == 3 {
 		if cs[1] == "help" {
 			HelpAccess()
 			return
@@ -48,6 +49,10 @@ func handleCmd(c string) {
 		db.DBGiveAccess(cs[1], cs[2])
 	} else if cs[0] == "listen" || cs[0] == "server" {
 		listen(cs)
+	} else if cs[0] == "load" && len(cs) == 2 {
+		ext.Module(cs[1])
+	} else if cs[0] == "revoke" && len(cs) == 3 {
+		db.DBrevoke(cs[2], cs[1])
 	}
 }
 

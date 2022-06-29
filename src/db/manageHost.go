@@ -258,3 +258,15 @@ func DBAuth(token string, host string) bool {
 		return false
 	}
 }
+
+func DBrevoke(User string, Host string) {
+	va, aid := DBVerifyAccess(User, Host)
+	if !va {
+		fmt.Println("[\u001B[1;31m!\u001B[0;0m] No access for user " + User)
+		return
+	}
+
+	stt, _ := DBConn.Prepare("DELETE FROM Access WHERE aid = ?;")
+	stt.Exec(aid)
+	fmt.Println("[\u001B[1;32m+\u001B[0;0m] Access revoked for user " + User)
+}

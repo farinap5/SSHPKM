@@ -19,6 +19,7 @@ func Help() {
 	t.AddLine("list", "List user|host|\"access <host>\"")
 	t.AddLine("config", "Set variables. Type \"config help\"")
 	t.AddLine("access", "Give access for a user to use a host.")
+	t.AddLine("revoke", "Revoke access for a user to use a host.")
 	t.AddLine("server", "start|stop|restart web service.")
 	print("\n")
 	t.Print()
